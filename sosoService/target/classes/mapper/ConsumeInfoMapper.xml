@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dao.ConsumeInfoDao">
+    <resultMap type="ConsumeInfo" id="ConsumeInfoResultMap" >
+        <id property="cardNumber" column="card_num"/>
+        <result property="consumeType" column="consume_type"/>
+        <result property="consumeData" column="consume_data"/>
+
+    </resultMap>
+
+<insert id="saveConsumeInfo" parameterType="ConsumeInfo">
+        insert into user_consume_record (card_num,consume_type_idx,consume_data)
+            values(#{cardNumber},
+                (select consume_type_idx from consume_type_record where consume_type=#{consumeType}),
+                #{consumeData})
+</insert>
+<update id="updateConsumeInfo" parameterType="ConsumeInfo">
+        update user_consume_record set card_num=#{cardNumber},
+            consume_type_idx=(select consume_type_idx from consume_type_record where consume_type=#{consumeType}),
+            consume_data=#{consumeData}
+        where card_num=#{cardNumber}
+</update>
+<delete id = "deleteConsumeInfo" parameterType="java.lang.String">
+        delete from user_consume_record where card_num=#{cardNumber}
+</delete>
+<select id="getConsumeInfo" resultMap="ConsumeInfoResultMap" parameterType="java.lang.String">
+        select * from get_consume_info_view where card_num=#{cardNumber}
+</select>
+<select id="queryAllConsumeInfo" resultMap="ConsumeInfoResultMap">
+        select * from get_consume_info_view
+</select>
+</mapper>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dao.StudentDao">
+<resultMap type="Student" id="mobileCardResultMap">
+    <id property="cardNumber" column="card_num"/>
+    <result property="cardNumber" column="card_num"/>
+    <result property="passWord" column="password"/>
+    <result property="userName" column="username"/>
+    <result property="packageIndex" column="package_index"/>
+    <result property="consumAmount" column="consume_amount"/>
+    <result property="money" column="money"/>
+    <result property="realOnlineCourseTime" column="real_onlinecourse_time"/>
+    <result property="realHomeworkUsingTime" column="real_homework_time"/>
+    <result property="realChatFlow" column="real_chat_flow"/>
+</resultMap>
+<insert id="saveOnlineCourseCard" parameterType="Student">
+
+        insert into user_basic_infomation(card_num,passWord,userName)
+            values (#{cardNumber},#{passWord},#{userName});
+        insert into user_consume_account(card_num,consume_amount,real_onlinecourse_time,real_homework_time,real_chat_flow,money)
+            values (#{cardNumber},#{consumAmount},#{realOnlineCourseTime},#{realHomeworkUsingTime},#{realChatFlow},#{money});
+        insert into user_package_info(card_num,package_index)
+            values(#{cardNumber},#{packageIndex});
+</insert>
+<update id="updateOnlineCourseCard" parameterType="Student">
+        update user_basic_infomation set passWord=#{passWord},userName=#{userName}
+            where card_num=#{cardNumber};
+        update user_consume_account set
+            consume_amount=#{consumAmount},
+            real_onlinecourse_time=#{realOnlineCourseTime},
+            real_homework_time=#{realHomeworkUsingTime},
+            real_chat_flow=#{realChatFlow},
+            money=#{money}
+            where card_num=#{cardNumber};
+        update user_package_info set package_index=#{packageIndex}
+            where card_num=#{cardNumber};
+</update>
+    <update id="updateOnlineCourseCardWhenCost">
+        update user_consume_account set
+            consume_amount=#{consumAmount},
+            real_onlinecourse_time=#{realOnlineCourseTime},
+            real_homework_time=#{realHomeworkUsingTime},
+            real_chat_flow=#{realChatFlow},
+            money=#{money}
+        where card_num=#{cardNumber};
+    </update>
+    <update id="updateOnlineCourseCardWhenCharge">
+        update user_consume_account set
+            money=#{money}
+        where card_num=#{cardNumber};
+    </update>
+    <update id="updateOnlineCourseCardWhenChangePac">
+        call update_card_change_package(
+            #{realOnlineCourseTime},
+            #{realHomeworkUsingTime},
+            #{realChatFlow},
+            #{packageIndex},
+            #{cardNumber}
+            );
+    </update>
+
+    <delete id = "deleteOnlineCourseCard" parameterType="java.lang.String">
+        set global autocommit=1;
+        start transaction;
+        set session transaction isolation level repeatable read;
+            delete from user_package_info where card_num=#{cardNumber};
+            delete from user_consume_record where card_num=#{cardNumber};
+            delete from user_basic_infomation where card_num=#{cardNumber};
+            delete from user_consume_account where card_num=#{cardNumber};
+        commit;
+</delete>
+    <delete id="deleteZombieUser" parameterType="Student">
+    set global autocommit=1;
+    start transaction;
+    set session transaction isolation level repeatable read;
+    delete a,b
+    from (user_basic_infomation as a left join user_consume_record as b
+    on a.card_num = b.card_num)
+    where a.card_num not in (#{cardNumber}) and
+    a.card_num in(
+    select temp.card_num from (
+    select user_basic_infomation.card_num from user_basic_infomation
+    where username=#{userName}
+    and card_num not in
+        (select card_num from
+        user_consume_record
+        group by card_num
+        having count(id)>4
+        )
+        )as temp
+    );
+    commit;
+    </delete>
+
+    <select id="getOnlineCourseCard" resultMap="mobileCardResultMap" parameterType="java.lang.String">
+    set global autocommit=1;
+    start transaction;
+    set session transaction isolation level repeatable read;
+        select * from get_online_course_card_view
+        where card_num = #{cardNumber};
+    commit;
+</select>
+<select id="queryAllOnlineCourseCard" resultMap="mobileCardResultMap">
+    select * from get_online_course_card_view
+
+</select>
+    <select id="getOnlineCourseCardByName" resultMap="mobileCardResultMap" parameterType="java.lang.String">
+        select * from get_online_course_card_view
+        where username = #{userName};
+
+    </select>
+</mapper>
